@@ -1,3 +1,6 @@
+# Define data generating functions:
+# Functions generate data frame with n rows and one x and one y column
+
 # create increasing normal data
 gen_inc_norm <- function(n) {
   x <- runif(n, 0, 10)

@@ -3,6 +3,9 @@ library(Rcpp)
 
 sourceCpp("pava_mean.cpp")
 
+# Define PAVA implementations:
+# Functions should receive a x and y vector and return the transformed vector
+
 # wrapper of gpava function of package isotone
 wrap_gpava <- function(x, y) {
   # ties secondary : average y values for ties in x

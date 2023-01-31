@@ -5,6 +5,16 @@ source("pav_algorithms.R")
 source("generate_synthetic_data.R")
 
 compare_runtime <- function(pava_list, gen_data_list, n_list, plot_name, B = 1) {
+  # - pava_list:
+  # list of pava implementations following format used in pav_algorithms.R
+  # - gen_data_list:
+  # list of data generating functions following format used in generate_synthetic_data.R
+  # - n_list:
+  # vector of sizes of data
+  # - plot_name:
+  # name of the plot comparing runtimes
+  # - B
+  # number of times used to average runtimes
   collect_results <- data.frame()
 
   for (n in n_list) {
