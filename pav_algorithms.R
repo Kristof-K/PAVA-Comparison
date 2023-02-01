@@ -30,54 +30,45 @@ my_isoreg <- function(x, y) {
   stopifnot(length(x) == length(y), is.numeric(x), is.numeric(y))
   n <- length(x)
   ord <- order(x)
+  x_sorted <- x[ord]
+  g_count <- rep(0, n)
+  g_val <- rep(0, n)
 
-  # columns: groups, rows: (mean, count) of each group
-  recal <- rbind(y[ord], rep(1, n))
-
-  pool_groups <- function(i, recal, j = i) {
-    I <- (i-1):j                                # merge group i:j into group i-1
-    count <- sum(recal[2, I])                                  # new group count
-    recal[1, i - 1] <- sum(recal[2, I] * recal[1, I]) / count  # new average
-    recal[2, i - 1] <- count
-    return(recal[, -(i:j), drop = F])   # delete merged group, keep dimensions
+  pool_with_prev <- function(i) {
+    new_count <- g_count[i] + g_count[i - 1]
+    # update mean and count: <<- access bigger scope
+    g_val[i-1] <<- (g_count[i] * g_val[i] + g_count[i-1] * g_val[i-1]) / new_count
+    g_count[i-1] <<- new_count
   }
 
-  # find coinciding x-values
-  no_change <- which(c(F, x[ord][2:n] == x[ord][1:(n-1)]))
-  n_no_change <- length(no_change)
-  if (n_no_change > 0) {
-    # walk backwards, so that indices are valid despite pooling of recal
-    j <- n_no_change
-    for (i in n_no_change:1) {
-      if (i > 1 && no_change[i-1] == no_change[i] - 1) {
-        next      # decrement i until we are at the end of consecutive block
-      } else {
-        recal <- pool_groups(no_change[i], recal, no_change[j])
-        j <- i - 1
-      }
+  # now walk through y-values and pool adjacent violators
+  g_curr <- 1
+  i <- 1
+  while (i <= n) {
+    # create new group
+    g_val[g_curr] <- y[ord[i]]
+    g_count[g_curr] <- 1
+    while (i < n && x_sorted[i] == x_sorted[i + 1]) {    # coninciding x-values
+      i <- i + 1
+      g_val[g_curr] <- g_val[g_curr] + y[ord[i]]
+      g_count[g_curr] <- g_count[g_curr] + 1
     }
-  }
+    g_val[g_curr] <- g_val[g_curr] / g_count[g_curr]      # average
 
-  i <- 2
-  while (T) {
-    if (recal[1, i] < recal[1, i-1]) {    # found violation --> pool
-      recal <- pool_groups(i, recal)
-      # pool with previous groups if now there are violations before
-      for (j in (i-1):1) {
-        if (j >= 2 && recal[1, j] < recal[1, j-1]) {
-          recal <- pool_groups(j, recal)
-          i <- i - 1      # we removed a group before i
-        } else {
-          break   # remainding groups are still increasing
-        }
+    if (g_curr > 1 && g_val[g_curr] < g_val[g_curr - 1]) {   # violations ?
+      pool_with_prev(g_curr)   # pool with group before
+      # new violations before? --> pool them!
+      while ((g_curr > 2) && (g_val[g_curr - 1] < g_val[g_curr - 2])) {
+	    g_curr <- g_curr - 1  	# decrease beforehand as we have checked for j-1 and j-2
+        pool_with_prev(g_curr)
       }
-    } else {     # go to next group
-      i <- i + 1 # in "if" we deleted a group, so no need to increase i
+    } else {
+      g_curr <- g_curr + 1     # introduce next group
     }
-    if (i > ncol(recal))
-      break   # iterated once through it all
+    i <- i + 1
   }
-  return(rep(recal[1,], recal[2,]))
+  # build output together
+  return(rep(g_val, g_count)[1:n])
 }
 
 # compile R implementation

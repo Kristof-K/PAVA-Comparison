@@ -4,7 +4,8 @@ library(ggplot2)
 source("pav_algorithms.R")
 source("generate_synthetic_data.R")
 
-compare_runtime <- function(pava_list, gen_data_list, n_list, plot_name, B = 1) {
+compare_runtime <- function(pava_list, gen_data_list, n_list, plot_name,
+                            my_colors, my_shapes, B = 1) {
   # - pava_list:
   # list of pava implementations following format used in pav_algorithms.R
   # - gen_data_list:
@@ -13,6 +14,10 @@ compare_runtime <- function(pava_list, gen_data_list, n_list, plot_name, B = 1) 
   # vector of sizes of data
   # - plot_name:
   # name of the plot comparing runtimes
+  # - my_colors:
+  # named vector assigning algorithms in pava_list colors
+  # - my_shapes:
+  # named vector assigning algorithms in pava_list shape values
   # - B
   # number of times used to average runtimes
   collect_results <- data.frame()
@@ -46,26 +51,35 @@ compare_runtime <- function(pava_list, gen_data_list, n_list, plot_name, B = 1) 
         )
         cmp_res <- res    # store res to compare with next algorithm
       }
-      cmp_res <- NULL     # forget res as we are moving on to other data
+      cmp_res <- NULL     # forget res as we are moving on to new data
     }
   }
   ggplot(collect_results, aes(x = n, y = T, color = Algorithm)) +
     facet_wrap(~Data, scales = "free_y") +
     geom_point(aes(shape = Algorithm)) +
     geom_line(size = 0.5) +
+    scale_color_manual(name = "Algorithm", values = my_colors,
+                       breaks = names(pava_list)) +
+    scale_shape_manual(name = "Algorithm", values = my_shapes,
+                       breaks = names(pava_list)) +
     xlab("n") +
     ylab("runtime [s]") +
     ggtitle("PAV Implementations: Runtime vs. Input Size") +
     theme_bw() +
-    theme(legend.justification = c(0, 1), legend.position = c(0.01, 0.99))
+    theme(legend.justification = c(0, 1), legend.position = c(0.01, 0.99),
+          legend.background = element_blank(),
+          legend.box.background = element_rect(color = "gray"),
+          panel.grid.major = element_line(size = 0.05),
+          panel.grid.minor = element_line(size = 0.05),
+          strip.background = element_blank())
   ggsave(plot_name, width = 250, height = 150, unit = "mm")
 }
 
 
-
 # data generating processes
 l_dgp <- list(IncreasingNormal = gen_inc_norm, UShapedNormal = gen_u_norm,
-              IncNormalTies = gen_ties_norm, InvUShapedNormal = gen_inv_u_norm)
+              IncreasingNormalTies = gen_ties_norm,
+              InvUShapedNormal = gen_inv_u_norm)
 num_avg <- 3
 
 # visualiize data
@@ -79,22 +93,23 @@ set.seed(999)
 l_algo <- list(GPAVA = wrap_gpava, ISOREG = wrap_isoreg, MY_R = my_r_isoreg,
                MY_CPP = my_cpp_isoreg)
 data_size <- c(100, 500, 1000, 5000, 10000)
+cols <- setNames(RColorBrewer::brewer.pal(length(l_algo), name = "Dark2"),
+                 names(l_algo))
+shapes <- setNames(1:length(l_algo), names(l_algo))
 name <- "figures/analysis1.pdf"
-compare_runtime(l_algo, l_dgp, data_size, name, B = num_avg)
+compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)
 
-# GPAVA cannot handle 10^5!
-data <- gen_inc_norm(10^5)
-wrap_gpava(data$x, data$y)    # Error cannot allocate 70GB of memory!
+# GPAVA ran into memory issues for n = 10^5
 
 # If we skip GPAVA we can use a bit larger data, but then the R implementation
 # slows down
 l_algo <- list(ISOREG = wrap_isoreg, MY_R = my_r_isoreg, MY_CPP = my_cpp_isoreg)
 data_size <- c(1000, 5000, 10000, 50000)
-name <- "figures/analysis2.pdf"
-compare_runtime(l_algo, l_dgp, data_size, name, B = num_avg)
+name <- "figures/analysis2_2.pdf"
+compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)
 
 # For even larger data sets, we can only look at isoreg and the cpp implementation
 l_algo <- list(ISOREG = wrap_isoreg, MY_CPP = my_cpp_isoreg)
 data_size <- c(10000, 50000, 100000, 500000, 10^6, 5*10^6, 10^7)
 name <- "figures/analysis3.pdf"
-compare_runtime(l_algo, l_dgp, data_size, name, B = num_avg)
+compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)
