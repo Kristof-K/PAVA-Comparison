@@ -91,7 +91,7 @@ set.seed(999)
 
 # We can use GPAVA only for small n values
 l_algo <- list(GPAVA = wrap_gpava, ISOREG = wrap_isoreg, MY_R = my_r_isoreg,
-               MY_CPP = my_cpp_isoreg)
+               MY_CPP = my_cpp_isoreg, MONOTONE = wrap_monotone)
 data_size <- c(100, 500, 1000, 5000, 10000)
 cols <- setNames(RColorBrewer::brewer.pal(length(l_algo), name = "Dark2"),
                  names(l_algo))
@@ -109,7 +109,14 @@ name <- "figures/analysis2_2.pdf"
 compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)
 
 # For even larger data sets, we can only look at isoreg and the cpp implementation
-l_algo <- list(ISOREG = wrap_isoreg, MY_CPP = my_cpp_isoreg)
+l_algo <- list(ISOREG = wrap_isoreg, MY_CPP = my_cpp_isoreg,
+               MONOTONE = wrap_monotone)
 data_size <- c(10000, 50000, 100000, 500000, 10^6, 5*10^6, 10^7)
 name <- "figures/analysis3.pdf"
+compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)
+
+# For even larger data sets, we can only look at isoreg and the cpp implementation
+l_algo <- list(MY_CPP = my_cpp_isoreg, MONOTONE = wrap_monotone)
+data_size <- c(10000, 50000, 100000, 500000, 10^6, 5*10^6, 10^7)
+name <- "figures/analysis4.pdf"
 compare_runtime(l_algo, l_dgp, data_size, name, cols, shapes, B = num_avg)

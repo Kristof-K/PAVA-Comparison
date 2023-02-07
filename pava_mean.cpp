@@ -9,7 +9,7 @@ using namespace std;
 // important: coinciding x-values have to be resolved immediately
 // made me some trouble finding that error
 
-void pool_with_prev(int i, vector<double> &g_val, vector<int> &g_count) {
+inline void pool_with_prev(int i, vector<double> &g_val, vector<int> &g_count) {
     int new_count = g_count[i] + g_count[i - 1];
     // update mean and count
     g_val[i-1] = (g_count[i] * g_val[i] + g_count[i-1] * g_val[i-1]) / new_count;

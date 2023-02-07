@@ -1,5 +1,8 @@
 library(isotone)
 library(Rcpp)
+library(monotone)
+library(dplyr)
+library(data.table)
 
 sourceCpp("pava_mean.cpp")
 
@@ -17,6 +20,11 @@ wrap_gpava <- function(x, y) {
 wrap_isoreg <- function(x, y) {
   res <- isoreg(x, y)
   return(res$yf)
+}
+
+wrap_monotone <- function(x, y) {
+  xy <- data.table(x = x, y = y) %>% arrange(x, desc(y))
+  return(monotone(xy$y))
 }
 
 # wrapper for PAV algorithm implemented in cpp
