@@ -9,6 +9,11 @@ using namespace std;
 // important: coinciding x-values have to be resolved immediately
 // made me some trouble finding that error
 
+// Possible improvements: implement k-ahead pooling instead of only 1-ahead
+// pooling (cmp. paper of monotone package); sort x ascending with ties sorted
+// by descending y, then we do not have to handle coinciding x-values, maybe
+// that is an performance improvement
+
 inline void pool_with_prev(int i, vector<double> &g_val, vector<int> &g_count) {
     int new_count = g_count[i] + g_count[i - 1];
     // update mean and count

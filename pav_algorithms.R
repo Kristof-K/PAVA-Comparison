@@ -5,8 +5,10 @@ library(dplyr)
 library(data.table)
 
 sourceCpp("pava_mean.cpp")
+sourceCpp("pava_quantile.cpp")
 
-# Define PAVA implementations:
+# ------------------------------------------------------------------------------
+# Define PAVA mean implementations:
 # Functions should receive a x and y vector and return the transformed vector
 
 # wrapper of gpava function of package isotone
@@ -23,6 +25,8 @@ wrap_isoreg <- function(x, y) {
 }
 
 wrap_monotone <- function(x, y) {
+  # sort x ascendindly and in case of ties y descendingly (ensures that it is
+  # equivalent to the other algorithms as monotone does not consider ties in x)
   xy <- data.table(x = x, y = y) %>% arrange(x, desc(y))
   return(monotone(xy$y))
 }
@@ -81,3 +85,20 @@ my_isoreg <- function(x, y) {
 
 # compile R implementation
 my_r_isoreg <- compiler::cmpfun(my_isoreg)
+
+# ------------------------------------------------------------------------------
+# PAVA quantile implementations
+
+# wrapper of gpava function of package isotone
+wrap_gpava_q <- function(x, y, alpha) {
+  # ties secondary : average y values for ties in x
+  xy <- data.table(x = x, y = y) %>% arrange(x, desc(y))
+  res <- gpava(xy$x, xy$y, solver = weighted.fractile, ties = "secondary", p = alpha)
+  return(res$x[order(x)])
+}
+
+# wrapper for PAV algorithm implemented in cpp
+my_cpp_isoreg_q <- function(x, y, alpha) {
+  res <- pav_quantile_cpp(x, y, alpha)
+  return(res[, 2])
+}
