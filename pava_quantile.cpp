@@ -7,7 +7,7 @@ using namespace Rcpp;
 using namespace std;
 
 // for each group we keep y values sorted to calculate quantiles in O(1)
-// Is it faster to search lineraly or binary search tree
+// Is it faster to search linearly or binary search tree
 // -> for small groups linear is more efficient, following
 // (https://stackoverflow.com/questions/36041553/sorting-one-element-in-a-sorted-container)
 
@@ -28,8 +28,9 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
   vector<double> y_arr(n);
   vector<int> g_i_start(n);         // start index of each group
   vector<double> g_val(n);          // quantile of each group
+  vector<double> sorted(n);         // is used temporally for sorting
   int g_curr = 0;
-  int i, k, k1, k2;
+  int i, k, k1, k2, size;
   vector<double>::iterator i_insert;
 
   // determine order of x
@@ -57,10 +58,10 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
     while (g_curr > 0 && g_val[g_curr] < g_val[g_curr - 1]) {
       // [g_i_start[g_curr-1], g_i_start[g_curr]) and [g_i_start[g_curr], i) are sorted
       // --> merge them by traversing both sections simultaneously
-      vector<double> sorted(i + 1 - g_i_start[g_curr - 1]);  // cannot do it inplace
+      size = i + 1 - g_i_start[g_curr - 1];  // cannot do it inplace
       k1 = g_i_start[g_curr - 1];
       k2 = g_i_start[g_curr];
-      for (k = 0; k < (int) sorted.size(); k++) {
+      for (k = 0; k < size; k++) {
 		// all elements from 2nd list used or 1st list has smaller element -> put it next
         if (k2 > i || (k1 < g_i_start[g_curr] && y_arr[k1] < y_arr[k2])) {
           sorted[k] = y_arr[k1++];
@@ -70,11 +71,11 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
       }
 	  g_i_start[g_curr] = 0;		// delete old group
       g_curr--; // we merge two groups, so there is one less
-      for (k = 0; k < (int) sorted.size(); k++) {
+      for (k = 0; k < size; k++) {
         y_arr[g_i_start[g_curr] + k] = sorted[k];          // copy sorted array
       }
       // determine quantile (casting to int corresponds flooring function)
-      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int)(sorted.size() * a)];
+      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int)(size * a)];
     }
     g_curr++;
   }

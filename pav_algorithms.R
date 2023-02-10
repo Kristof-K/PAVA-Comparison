@@ -94,7 +94,7 @@ wrap_gpava_q <- function(x, y, alpha) {
   # ties secondary : average y values for ties in x
   xy <- data.table(x = x, y = y) %>% arrange(x, desc(y))
   res <- gpava(xy$x, xy$y, solver = weighted.fractile, ties = "secondary", p = alpha)
-  return(res$x[order(x)])
+  return(res$x[order(xy$x)])
 }
 
 # wrapper for PAV algorithm implemented in cpp
