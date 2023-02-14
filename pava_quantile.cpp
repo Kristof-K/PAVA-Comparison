@@ -11,10 +11,10 @@ using namespace std;
 // -> for small groups linear is more efficient, following
 // (https://stackoverflow.com/questions/36041553/sorting-one-element-in-a-sorted-container)
 
-// it is not clear how many group we need: should g_val and g_i_start be initialized
+// it is not clear how many groups we need: should g_val and g_i_start be initialized
 // statically with n elements or should it be able to grow dynamically?
 
-// use c++ convention: lower bound inclusive, upper bound exclusive
+// c++: lower bound inclusive, upper bound exclusive
 // i++ means i is incremented after current line is executed (postfix)
 
 // [[Rcpp::export]]
@@ -30,6 +30,7 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
   vector<double> g_val(n);          // quantile of each group
   vector<double> sorted(n);         // is used temporally for sorting
   int g_curr = 0;
+  double i_q, eps = 0.000000001;    // use 10^-9 to compare floating point numbers
   int i, k, k1, k2, size;
   vector<double>::iterator i_insert;
 
@@ -51,14 +52,19 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
       // i_insert points where new value has to be sorted in: copy succeeding values one back
       copy_backward(i_insert, y_arr.begin() + i, y_arr.begin() + i + 1);
       *i_insert = y[ord[i]];
-      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int) (a * (i + 1 - g_i_start[g_curr]))];
+      // calculate sample quantile ( (int)i_q truncates i_q )
+      i_q = a * (i + 1 - g_i_start[g_curr]);
+      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int)i_q];
+      if (i_q - (int)i_q < eps) {
+        g_val[g_curr] = (g_val[g_curr] + y_arr[g_i_start[g_curr] + (int)i_q - 1]) / 2;
+      }
     }
 
     // pool violations looking backward ----------------------------------------
     while (g_curr > 0 && g_val[g_curr] < g_val[g_curr - 1]) {
       // [g_i_start[g_curr-1], g_i_start[g_curr]) and [g_i_start[g_curr], i) are sorted
       // --> merge them by traversing both sections simultaneously
-      size = i + 1 - g_i_start[g_curr - 1];  // cannot do it inplace
+      size = i + 1 - g_i_start[g_curr - 1];
       k1 = g_i_start[g_curr - 1];
       k2 = g_i_start[g_curr];
       for (k = 0; k < size; k++) {
@@ -75,7 +81,11 @@ NumericMatrix pav_quantile_cpp(NumericVector x, NumericVector y, NumericVector a
         y_arr[g_i_start[g_curr] + k] = sorted[k];          // copy sorted array
       }
       // determine quantile (casting to int corresponds flooring function)
-      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int)(size * a)];
+      i_q = size * a;
+      g_val[g_curr] = y_arr[g_i_start[g_curr] + (int)i_q];
+      if (i_q - (int)i_q < eps) {
+        g_val[g_curr] = (g_val[g_curr] + y_arr[g_i_start[g_curr] + (int)i_q - 1]) / 2;
+      }
     }
     g_curr++;
   }

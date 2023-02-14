@@ -59,9 +59,9 @@ for (a in alpha) {
 }
 
 set.seed(1)
-data <- l_dgp[[gen_data]](20)
-x_rc1 <- my_cpp_isoreg_q(data$x, data$y, a)
-x_rc2 <- wrap_gpava_q(data$x, data$y, a)
+data <- gen_inv_u_norm(20)
+x_rc1 <- my_cpp_isoreg_q(data$x, data$y, 0.75)
+x_rc2 <- wrap_gpava_q(data$x, data$y, 0.75)
 
 t <- cbind(x_rc1, x_rc2)
 View(t)
@@ -73,9 +73,14 @@ ord <- order(data$x)
 xy <- data.frame(x = data$x[ord], y = data$y[ord])
 View(xy)
 
+# check all types of quantiles
+for (t in 1:9) {
+  cat(quantile((data$y[ord])[5:20], probs = 0.75, type = t), " ")
+}
+
 # Check how fast solutions are determined
-n_list <- 10^(3:5)
-B <- 5
+n_list <- 10^(3:6)
+B <- 3
 collect_res <- data.frame()
 
 for (a in alpha) {
@@ -91,7 +96,7 @@ for (a in alpha) {
         start <- now()
         res <- my_cpp_isoreg_q(data$x, data$y, a)
         end <- now()
-        time <- time + as.numeric(seconds(end - start))
+        time <- time + interval(start, end) / seconds(1)
       }
       collect_res <- rbind(collect_res, data.frame(D = gen_data, N = n, A = a, T = time / B))
     }
@@ -110,4 +115,4 @@ ggplot(collect_res) +
   theme_bw() +
   theme(legend.position = "bottom", legend.direction = "horizontal",
         legend.box = "vertical")
-ggsave("figures/quantile_runtime_4.pdf", width = 250, height = 180, unit = "mm")
+ggsave("figures/quantile_runtime_5.pdf", width = 250, height = 180, unit = "mm")
